@@ -1,0 +1,31 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyc
+
+
+# Virtual Enviroment
+venv/
+env/
+.venv/
+.env/
+
+# Enviroment Variables
+.env
+.env.local
+
+# Database
+*.db
+postgres_data/
+*.sql.backup
+*.sql
+*.dump
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Tesing
+.pytest_cache/
+.coverage
