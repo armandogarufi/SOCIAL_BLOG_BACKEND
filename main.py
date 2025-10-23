@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, status
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -7,6 +7,8 @@ from shared.config.settings import settings
 from pydantic import BaseModel, Field
 
 from typing import List
+
+from datetime import datetime
 
 app = FastAPI(
     title = settings.app_name,
@@ -90,19 +92,21 @@ class ArticleResponse(BaseModel):
     author_id: int = Field(examples=[2])
     title: str = Field(examples=["Article's Title"])
     content: str = Field(examples=["Article's Content"])
+    created_at: datetime = Field(examples=["2023-01-01 15:23:57"])
 
-@app.get("/articles/{article_id}", response_model=ArticleResponse)
-def get_article_details(article_id: int) -> ArticleResponse:
-    """
-    Endpoint for get article details by article_id
-    """
+# @app.get("/articles/{article_id}", response_model=ArticleResponse)
+# def get_article_details(article_id: int) -> ArticleResponse:
+#     """
+#     Endpoint for get article details by article_id
+#     """
 
-    return ArticleResponse(
-        id = article_id,
-        author_id = article_id + 1,
-        title = f"Article {article_id}",
-        content = f"Content of article {article_id}"
-    )
+#     return ArticleResponse(
+#         id = article_id,
+#         author_id = article_id + 1,
+#         title = f"Article {article_id}",
+#         content = f"Article {article_id} content",
+#         created_at = datetime.strptime(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+#     )
 
 
 # Test query parameter endpoint
@@ -254,4 +258,56 @@ def search(
         query = q,
         results_count = results_count,
         results = search_results
+    )
+
+
+# Test endpoint post
+
+FAKE_ARTICLES = []
+article_id_counter = 1
+
+# Schemas
+# Request Article Model
+class ArticleCreate(BaseModel):
+    title: str = Field(..., min_length=5, max_length=200) 
+    content: str = Field(..., min_length=10)
+    author_id: int | None = Field(gt=0)
+
+# Response Article Model
+# Utilizziamo la classe ArticleResponse già presente sopra
+
+
+# Endpoint post
+@app.post("/articles", status_code=status.HTTP_201_CREATED, response_model=ArticleResponse)
+def create_articles(article: ArticleCreate) -> ArticleResponse:
+    """
+    Endpoint for create new article and add it to the list
+    """
+    global article_id_counter
+
+    new_article = {
+        "id": article_id_counter,
+        "title": article.title,
+        "content": article.content,
+        "author_id": article.author_id,
+        "created_at": datetime.strptime(datetime.now().strftime("%Y-%m-%d - %H:%M%S"), "%Y-%m-%d - %H:%M%S")
+    }
+
+    FAKE_ARTICLES.append(new_article)
+    article_id_counter += 1
+
+    return ArticleResponse(**new_article)
+
+@app.get("/articles/{article_id}", response_model=ArticleResponse)
+def get_article_details(article_id: int) -> ArticleResponse:
+    """
+    Get Article by ID
+    """
+    for article in FAKE_ARTICLES:
+        if article["id"] == article_id:
+            return ArticleResponse(**article)
+    
+    raise HTTPException(
+        status_code = 404,
+        detail = f"Error! Article with id: {article_id} not found"
     )
